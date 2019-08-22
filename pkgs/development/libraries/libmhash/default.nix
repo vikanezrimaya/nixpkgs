@@ -1,6 +1,6 @@
 { stdenv, fetchurl }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (rec {
   pname = "mhash";
   version = "0.9.9.9";
   name = "${pname}-${version}";
@@ -9,7 +9,7 @@ stdenv.mkDerivation rec {
     url = "mirror://sourceforge/${pname}/${name}.tar.bz2";
     sha256 = "1w7yiljan8gf1ibiypi6hm3r363imm3sxl1j8hapjdq3m591qljn";
   };
-
+  
   dontDisableStatic = true;
 
   patches = [ ./autotools-define-conflict-debian-fix.patch ];
@@ -26,4 +26,8 @@ stdenv.mkDerivation rec {
     license = "LGPL";
     platforms = stdenv.lib.platforms.unix;
   };
-}
+} // (stdenv.lib.optionalAttrs (stdenv.buildPlatform != stdenv.hostPlatform) {
+  configureFlags = [
+    "ac_cv_func_malloc_0_nonnull=yes"
+  ];
+}))
