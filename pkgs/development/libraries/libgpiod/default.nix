@@ -20,7 +20,9 @@ stdenv.mkDerivation rec {
     "--enable-tools=${if enable-tools then "yes" else "no"}"
     "--enable-bindings-cxx"
     "--prefix=${placeholder ''out''}"
-  ];
+  ] ++ (if (stdenv.buildPlatform != stdenv.hostPlatform) then [
+    "ac_cv_func_malloc_0_nonnull=yes"
+  ] else []);
 
   meta = with stdenv.lib; {
     description = "C library and tools for interacting with the linux GPIO character device";
