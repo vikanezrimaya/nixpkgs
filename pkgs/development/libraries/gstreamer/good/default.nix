@@ -115,6 +115,10 @@ stdenv.mkDerivation rec {
     "-Dexamples=disabled" # requires many dependencies and probably not useful for our users
     "-Ddoc=disabled" # `hotdoc` not packaged in nixpkgs as of writing
     "-Dqt5=disabled" # not clear as of writing how to correctly pass in the required qt5 deps
+
+    # only works on Linux aarch64 and needs a particular header file? doesn't seem to be present in Nixpkgs, so disabled for now
+    # see https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/-/blob/428c9b60532917c0ac49c9d48b15bdcd00a1370b/sys/rpicamsrc/meson.build#L10
+    "-Drpicamsrc=disabled"
   ] ++ optionals (!gtkSupport) [
     "-Dgtk3=disabled"
   ] ++ optionals (!enableJack) [
@@ -128,8 +132,6 @@ stdenv.mkDerivation rec {
     "-Dv4l2=disabled" # Linux-only
     "-Dximagesrc=disabled" # Linux-only
     "-Dpulse=disabled" # TODO check if we can keep this enabled
-  ] ++ optionals (!(stdenv.isLinux && stdenv.hostPlatform.isAarch64)) [
-    "-Drpicamsrc=disabled" # only works on Linux aarch64, see https://gitlab.freedesktop.org/gstreamer/gst-plugins-good/-/blob/428c9b60532917c0ac49c9d48b15bdcd00a1370b/sys/rpicamsrc/meson.build#L10
   ];
 
   postPatch = ''
