@@ -25,6 +25,7 @@ buildPythonPackage {
   '';
 
   pythonImportsCheck = [
+    "ngraph"
     "openvino"
     "openvino.runtime"
   ];
