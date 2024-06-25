@@ -1,0 +1,192 @@
+:100644 100644 6f67dc28 00000000 M	server.js
+:100644 100644 58571bae 00000000 M	src/endpoints/avatars.js
+:100644 100644 b8965ab5 00000000 M	src/endpoints/backgrounds.js
+:100644 100644 8e663db5 00000000 M	src/endpoints/characters.js
+:100644 100644 d88b27fa 00000000 M	src/endpoints/chats.js
+:100644 100644 88a577b3 00000000 M	src/endpoints/sprites.js
+:100644 100644 f8ab2d49 00000000 M	src/endpoints/worldinfo.js
+
+diff --git a/server.js b/server.js
+index 6f67dc28..804397ac 100644
+--- a/server.js
++++ b/server.js
+@@ -286,7 +286,7 @@ app.use(userModule.requireLoginMiddleware);
+ app.get('/api/ping', (_, response) => response.sendStatus(204));
+ 
+ // File uploads
+-app.use(multer({ dest: UPLOADS_PATH, limits: { fieldSize: 10 * 1024 * 1024 } }).single('avatar'));
++app.use(multer({ dest: path.join(dataRoot, UPLOADS_PATH), limits: { fieldSize: 10 * 1024 * 1024 } }).single('avatar'));
+ app.use(require('./src/middleware/multerMonkeyPatch'));
+ 
+ // User data mount
+diff --git a/src/endpoints/avatars.js b/src/endpoints/avatars.js
+index 58571bae..9d571e95 100644
+--- a/src/endpoints/avatars.js
++++ b/src/endpoints/avatars.js
+@@ -6,6 +6,7 @@ const writeFileAtomicSync = require('write-file-atomic').sync;
+ const { jsonParser, urlencodedParser } = require('../express-common');
+ const { AVATAR_WIDTH, AVATAR_HEIGHT, UPLOADS_PATH } = require('../constants');
+ const { getImages, tryParse } = require('../util');
++let { DATA_ROOT } = require('../users');
+ 
+ // image processing related library imports
+ const jimp = require('jimp');
+@@ -39,7 +40,7 @@ router.post('/upload', urlencodedParser, async (request, response) => {
+     if (!request.file) return response.sendStatus(400);
+ 
+     try {
+-        const pathToUpload = path.join(UPLOADS_PATH, request.file.filename);
++        const pathToUpload = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+         const crop = tryParse(request.query.crop);
+         let rawImg = await jimp.read(pathToUpload);
+ 
+diff --git a/src/endpoints/backgrounds.js b/src/endpoints/backgrounds.js
+index b8965ab5..56ea25d4 100644
+--- a/src/endpoints/backgrounds.js
++++ b/src/endpoints/backgrounds.js
+@@ -7,6 +7,7 @@ const { jsonParser, urlencodedParser } = require('../express-common');
+ const { UPLOADS_PATH } = require('../constants');
+ const { invalidateThumbnail } = require('./thumbnails');
+ const { getImages } = require('../util');
++let { DATA_ROOT } = require('../users');
+ 
+ const router = express.Router();
+ 
+@@ -60,7 +61,7 @@ router.post('/rename', jsonParser, function (request, response) {
+ router.post('/upload', urlencodedParser, function (request, response) {
+     if (!request.body || !request.file) return response.sendStatus(400);
+ 
+-    const img_path = path.join(UPLOADS_PATH, request.file.filename);
++    const img_path = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+     const filename = request.file.originalname;
+ 
+     try {
+diff --git a/src/endpoints/characters.js b/src/endpoints/characters.js
+index 8e663db5..ab7d8f82 100644
+--- a/src/endpoints/characters.js
++++ b/src/endpoints/characters.js
+@@ -20,6 +20,7 @@ const { readWorldInfoFile } = require('./worldinfo');
+ const { invalidateThumbnail } = require('./thumbnails');
+ const { importRisuSprites } = require('./sprites');
+ const defaultAvatarPath = './public/img/ai4.png';
++let { DATA_ROOT } = require('../users');
+ 
+ // KV-store for parsed character data
+ const characterDataCache = new Map();
+@@ -675,7 +676,7 @@ router.post('/create', urlencodedParser, async function (request, response) {
+             return response.send(avatarName);
+         } else {
+             const crop = tryParse(request.query.crop);
+-            const uploadPath = path.join(UPLOADS_PATH, request.file.filename);
++            const uploadPath = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+             await writeCharacterData(uploadPath, char, internalName, request, crop);
+             fs.unlinkSync(uploadPath);
+             return response.send(avatarName);
+@@ -758,7 +759,7 @@ router.post('/edit', urlencodedParser, async function (request, response) {
+             await writeCharacterData(avatarPath, char, targetFile, request);
+         } else {
+             const crop = tryParse(request.query.crop);
+-            const newAvatarPath = path.join(UPLOADS_PATH, request.file.filename);
++            const newAvatarPath = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+             invalidateThumbnail(request.user.directories, 'avatar', request.body.avatar_url);
+             await writeCharacterData(newAvatarPath, char, targetFile, request, crop);
+             fs.unlinkSync(newAvatarPath);
+@@ -1042,7 +1043,7 @@ function getPreservedName(request) {
+ router.post('/import', urlencodedParser, async function (request, response) {
+     if (!request.body || !request.file) return response.sendStatus(400);
+ 
+-    const uploadPath = path.join(UPLOADS_PATH, request.file.filename);
++    const uploadPath = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+     const format = request.body.file_type;
+     const preservedFileName = getPreservedName(request);
+ 
+diff --git a/src/endpoints/chats.js b/src/endpoints/chats.js
+index d88b27fa..932c0f0d 100644
+--- a/src/endpoints/chats.js
++++ b/src/endpoints/chats.js
+@@ -8,6 +8,7 @@ const writeFileAtomicSync = require('write-file-atomic').sync;
+ const { jsonParser, urlencodedParser } = require('../express-common');
+ const { UPLOADS_PATH } = require('../constants');
+ const { getConfigValue, humanizedISO8601DateTime, tryParse, generateTimestamp, removeOldBackups } = require('../util');
++let { DATA_ROOT } = require('../users');
+ 
+ /**
+  * Saves a chat to the backups directory.
+@@ -323,7 +324,7 @@ router.post('/group/import', urlencodedParser, function (request, response) {
+         }
+ 
+         const chatname = humanizedISO8601DateTime();
+-        const pathToUpload = path.join(UPLOADS_PATH, filedata.filename);
++        const pathToUpload = path.join(DATA_ROOT, UPLOADS_PATH, filedata.filename);
+         const pathToNewFile = path.join(request.user.directories.groupChats, `${chatname}.jsonl`);
+         fs.copyFileSync(pathToUpload, pathToNewFile);
+         fs.unlinkSync(pathToUpload);
+@@ -347,7 +348,7 @@ router.post('/import', urlencodedParser, function (request, response) {
+     }
+ 
+     try {
+-        const data = fs.readFileSync(path.join(UPLOADS_PATH, request.file.filename), 'utf8');
++        const data = fs.readFileSync(path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename), 'utf8');
+ 
+         if (format === 'json') {
+             const jsonData = JSON.parse(data);
+@@ -388,7 +389,7 @@ router.post('/import', urlencodedParser, function (request, response) {
+             if (jsonData.user_name !== undefined || jsonData.name !== undefined) {
+                 const fileName = `${characterName} - ${humanizedISO8601DateTime()} imported.jsonl`;
+                 const filePath = path.join(request.user.directories.chats, avatarUrl, fileName);
+-                fs.copyFileSync(path.join(UPLOADS_PATH, request.file.filename), filePath);
++                fs.copyFileSync(path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename), filePath);
+                 response.send({ res: true });
+             } else {
+                 console.log('Incorrect chat format .jsonl');
+diff --git a/src/endpoints/sprites.js b/src/endpoints/sprites.js
+index 88a577b3..f0cdbb0c 100644
+--- a/src/endpoints/sprites.js
++++ b/src/endpoints/sprites.js
+@@ -6,6 +6,7 @@ const mime = require('mime-types');
+ const sanitize = require('sanitize-filename');
+ const writeFileAtomicSync = require('write-file-atomic').sync;
+ const { UPLOADS_PATH } = require('../constants');
++let { DATA_ROOT } = require('../users');
+ const { getImageBuffers } = require('../util');
+ const { jsonParser, urlencodedParser } = require('../express-common');
+ 
+@@ -190,7 +191,7 @@ router.post('/upload-zip', urlencodedParser, async (request, response) => {
+             return response.sendStatus(404);
+         }
+ 
+-        const spritePackPath = path.join(UPLOADS_PATH, file.filename);
++        const spritePackPath = path.join(DATA_ROOT, UPLOADS_PATH, file.filename);
+         const sprites = await getImageBuffers(spritePackPath);
+         const files = fs.readdirSync(spritesPath);
+ 
+@@ -248,7 +249,7 @@ router.post('/upload', urlencodedParser, async (request, response) => {
+         }
+ 
+         const filename = label + path.parse(file.originalname).ext;
+-        const spritePath = path.join(UPLOADS_PATH, file.filename);
++        const spritePath = path.join(DATA_ROOT, UPLOADS_PATH, file.filename);
+         const pathToFile = path.join(spritesPath, filename);
+         // Copy uploaded file to sprites folder
+         fs.cpSync(spritePath, pathToFile);
+diff --git a/src/endpoints/worldinfo.js b/src/endpoints/worldinfo.js
+index f8ab2d49..18256a97 100644
+--- a/src/endpoints/worldinfo.js
++++ b/src/endpoints/worldinfo.js
+@@ -6,6 +6,7 @@ const writeFileAtomicSync = require('write-file-atomic').sync;
+ 
+ const { jsonParser, urlencodedParser } = require('../express-common');
+ const { UPLOADS_PATH } = require('../constants');
++let { DATA_ROOT } = require('../users');
+ 
+ /**
+  * Reads a World Info file and returns its contents
+@@ -74,7 +75,7 @@ router.post('/import', urlencodedParser, (request, response) => {
+     if (request.body.convertedData) {
+         fileContents = request.body.convertedData;
+     } else {
+-        const pathToUpload = path.join(UPLOADS_PATH, request.file.filename);
++        const pathToUpload = path.join(DATA_ROOT, UPLOADS_PATH, request.file.filename);
+         fileContents = fs.readFileSync(pathToUpload, 'utf8');
+         fs.unlinkSync(pathToUpload);
+     }

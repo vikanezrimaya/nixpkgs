@@ -28,7 +28,7 @@ buildNpmPackage rec {
 
   npmDepsHash = "sha256-8C/Lp5024XC4SYP3789LotdcgTjrsz3soN1YJ8TWt3k=";
 
-  patches = [ ./lock.patch ];
+  patches = [ ./lock.patch ./uploads-dataRoot.patch ];
 
   desktopFile = ./sillytavern.desktop;
 
