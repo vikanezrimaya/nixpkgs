@@ -2,20 +2,32 @@
   lib,
   fetchFromGitea,
   rustPlatform,
+  versionCheckHook,
+  openssl,
+  pkg-config,
 }:
+
 rustPlatform.buildRustPackage rec {
   pname = "pay-respects";
-  version = "0.4.18";
+  version = "0.6.2";
 
   src = fetchFromGitea {
     domain = "codeberg.org";
     owner = "iff";
     repo = "pay-respects";
     rev = "v${version}";
-    hash = "sha256-8YQgNOqZAMhn93rk0fw1SV02XhI/Wt9D5Rzo64cCs7s=";
+    hash = "sha256-ZfgMu2N2YMGoQXi0FCw0VzjFHv96oQAnH8FkfavKtq0=";
   };
 
-  cargoHash = "sha256-xLAJLwzX923E7Pzfwdw38moLOlY0Q4xK8himbKHQ7O8=";
+  cargoHash = "sha256-nI15XtMs0/NqLQS319QuJbqZA6ZofWaN6ZtJu/2WsCI=";
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  nativeInstallCheckInputs = [ versionCheckHook ];
+
+  doInstallCheck = true;
 
   meta = {
     description = "Terminal command correction, alternative to `thefuck`, written in Rust";
